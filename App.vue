@@ -3,19 +3,34 @@
         <h1>COMP905 Group Project Peer Evaluation</h1>
         <form v-on:submit.prevent="submit">
             <input type="text" name="student" id="student" placeholder="Your Name" v-model="submitter" required>
-            <select name="peer" id="peer" v-model="peer" required>
+            <br>
+            <br>
+            <label for="peer">Please select your course: </label>
+            <select name="course" id="course" v-model="course" required>
+                <option disabled value="">Please select your course</option>
+                <option value="comp905">COMP 905</option>
+                <option value="comp66">COMP 66</option>
+            </select>
+            <br>
+            <br>
+            <label for="peer">Please select a peer: </label>
+            <select name="peer" id="peer" v-model="userId" required v-if="course === 'comp905'">
                 <option disabled value="">Please select a peer</option>
-                <option v-for="student in peers" :value="student" :key="student">{{ student }}</option>
+                <option v-for="student in comp905Users" :value="student.id" :key="student.id">{{ student.name }}</option>
+            </select>
+            <select name="peer" id="peer" v-model="userId" required v-if="course === 'comp66'">
+                <option disabled value="">Please select a peer</option>
+                <option  v-for="student in comp66Users" :value="student.id" :key="student.id">{{ student.name }}</option>
             </select>
             <div class="feedback" v-for="(question, index) in questions" :key="index">
                 <h3>{{ question.prompt }}</h3>
                 <div class="option" v-for="(option, count) in question.options" :key="count">
-                    <input type="radio" :id="'option' + (count + 1)" :value="option.value" v-model="answers[index]">
+                    <input type="radio" :id="'option' + (count + 1)" :value="{optionId: option.id, questionId: question.id, submitter: submitter, userId: userId}" v-model="responses[index]">
                     <label :for="'option' + (count + 1)">{{ option.value }}</label>
                     <br>
                 </div>
             </div>
-            <input type="submit" value="Submit">
+            <input type="submit" value="Submit" style="margin-top: 30px; width: 200px;">
         </form>
     </div>
 </template>
@@ -27,6 +42,7 @@ export default {
             questionOperationsDoc: `
                 query QuestionQuery {
                     questions {
+                    id
                     prompt
                     options {
                         id
@@ -41,16 +57,17 @@ export default {
                     users {
                     id
                     name
+                    course
                     }
                 }
             `,
-            questionId: null,
-            optionId: null,
             userId: null,
             submitter: null,
-            users: [],
+            course: null,
+            comp905Users: [],
+            comp66Users:[],
             questions: [],
-            answers: []
+            responses: []
         }
     },
     created() {
@@ -59,19 +76,27 @@ export default {
     },
     methods: {
         submit() {
-            console.log(this.peer + ' selected by ' + this.student + ' answered ' + this.answers)
+            for (const response of this.responses) {
+                if(!response) {
+                    alert('You must select a response for all questions');
+                    return
+                }
+            }
+            let stringResponses = JSON.stringify(this.responses)
+            stringResponses.replace(/\\"/g,"\uFFFF");
+            stringResponses = stringResponses.replace(/"([^"]+)":/g, '$1:').replace(/\uFFFF/g, '\\"');
             const mutationOperationsDoc = `
-                mutation MyMutation {
-                    insert_responses_one(object: {questionId: ${this.questionId}, userId: ${this.userId}, optionId: ${this.optionId}, submitter: ${this.submitter}}) {
-                    id
+                mutation ResponsesMutation {
+                    insert_responses(objects: ${stringResponses}) {
+                        affected_rows
                     }
                 }
             `;
-            this.startExecuteMyMutation(mutationOperationsDoc)
+            this.startExecuteResponsesMutation(mutationOperationsDoc)
         },
         async fetchGraphQL(operationsDoc, operationName, variables) {
             const result = await fetch(
-                "https://striking-cowbird-63.hasura.app/v1/graphql",
+                "https://survey-f20.hasura.app/v1/graphql",
                 {
                 method: "POST",
                 body: JSON.stringify({
@@ -100,23 +125,24 @@ export default {
             // do something great with this precious data
             this.questions = data.questions;
         },
-        executeMyMutation(mutationOperationsDoc) {
+        executeResponsesMutation(mutationOperationsDoc) {
             return this.fetchGraphQL(
                 mutationOperationsDoc,
-                "MyMutation",
+                "ResponsesMutation",
                 {}
             );
         },
-        async startExecuteMyMutation(mutationOperationsDoc) {
-            const { errors, data } = await this.executeMyMutation(mutationOperationsDoc);
+        async startExecuteResponsesMutation(mutationOperationsDoc) {
+            const { errors, data } = await this.executeResponsesMutation(mutationOperationsDoc);
 
             if (errors) {
-                // handle those errors like a pro
                 console.error(errors);
+                alert('There was an error submitting your data, please try again')
+                return
             }
-
-            // do something great with this precious data
             console.log(data);
+            alert('Success, please complete this form for each of your group members (including yourself).')
+            location.reload()
         },
         fetchUserQuery() {
             return this.fetchGraphQL(
@@ -132,7 +158,14 @@ export default {
                 console.error(errors);
             }
             // do something great with this precious data
-            this.users = data.users
+            for(const user of data.users) {
+                if(user.course === 'comp905') {
+                    this.comp905Users.push(user)
+                } else if(user.course === 'comp66') {
+                    this.comp66Users.push(user)
+                }
+            }
+
         }
     }
 }
