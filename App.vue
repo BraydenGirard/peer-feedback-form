@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h1>COMP905 Group Project Peer Evaluation</h1>
+        <h1>Group Project Peer Evaluation</h1>
         <form v-on:submit.prevent="submit">
             <input type="text" name="student" id="student" placeholder="Your Name" v-model="submitter" required>
             <br>
