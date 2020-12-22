@@ -100,7 +100,6 @@ function sleep(ms) {
                     }
                 }
                 userGrades["id-"+ user.id.toString()] = grade
-                break;
             }
             catch(error) {
                 console.error(error);
