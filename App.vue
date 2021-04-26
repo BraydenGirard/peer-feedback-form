@@ -96,7 +96,7 @@ export default {
         },
         async fetchGraphQL(operationsDoc, operationName, variables) {
             const result = await fetch(
-                "https://survey-f20.hasura.app/v1/graphql",
+                "https://survey-w21.hasura.app/v1/graphql",
                 {
                 method: "POST",
                 body: JSON.stringify({
