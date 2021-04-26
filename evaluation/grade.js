@@ -5,7 +5,7 @@ const args = process.argv.slice(2);
 
 function fetchGraphQL(operationsDoc, operationName, variables) {
     return fetch(
-      "https://survey-w21.hasura.app/v1/graphql",
+      "https://survey-slc.hasura.app/v1/graphql",
       {
         method: "POST",
         body: JSON.stringify({
